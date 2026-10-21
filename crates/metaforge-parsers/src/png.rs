@@ -33,7 +33,7 @@ pub struct PngHeader {
 pub struct PngResolution {
     pub ppu_x: u32,
     pub ppu_y: u32,
-    pub unit_specifier: u8, // 1 = meter, 0 = unknown
+    pub unit_specifier: u8,
 }
 
 /// Significant bits from sBIT chunk.
@@ -55,13 +55,13 @@ pub struct PngBackgroundColor {
 pub struct PngOffset {
     pub offset_x: i32,
     pub offset_y: i32,
-    pub unit_specifier: u8, // 0 = pixel, 1 = micrometer
+    pub unit_specifier: u8,
 }
 
 /// Physical scale from sCAL chunk.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PngScale {
-    pub unit_specifier: u8, // 1 = meter, 2 = radian
+    pub unit_specifier: u8,
     pub width_scale: String,
     pub height_scale: String,
 }
@@ -131,12 +131,10 @@ pub fn parse_png(bytes: &[u8]) -> Result<PngInfo, MetaForgeError> {
         let crc = u32::from_be_bytes([bytes[pos], bytes[pos + 1], bytes[pos + 2], bytes[pos + 3]]);
         pos += 4;
 
-        // Verify CRC (covers type + data)
         let mut crc_check_data = Vec::with_capacity(4 + length);
         crc_check_data.extend_from_slice(&type_bytes);
         crc_check_data.extend_from_slice(payload);
-        let calculated_crc = crc32(&crc_check_data);
-        let crc_valid = calculated_crc == crc;
+        let crc_valid = crc32(&crc_check_data) == crc;
 
         chunks.push(PngChunk {
             chunk_type: type_bytes,
@@ -148,22 +146,18 @@ pub fn parse_png(bytes: &[u8]) -> Result<PngInfo, MetaForgeError> {
         });
 
         match type_name.as_str() {
-            "IHDR" => {
-                if payload.len() >= 13 {
-                    header = Some(PngHeader {
-                        width: u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]),
-                        height: u32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]),
-                        bit_depth: payload[8],
-                        color_type: payload[9],
-                        compression_method: payload[10],
-                        filter_method: payload[11],
-                        interlace_method: payload[12],
-                    });
-                }
+            "IHDR" if payload.len() >= 13 => {
+                header = Some(PngHeader {
+                    width: u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]),
+                    height: u32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]),
+                    bit_depth: payload[8],
+                    color_type: payload[9],
+                    compression_method: payload[10],
+                    filter_method: payload[11],
+                    interlace_method: payload[12],
+                });
             }
-            "PLTE" => {
-                palette_entries = Some(payload.len() / 3);
-            }
+            "PLTE" => palette_entries = Some(payload.len() / 3),
             "tEXt" => {
                 if let Some(null_pos) = payload.iter().position(|&b| b == 0) {
                     let key = String::from_utf8_lossy(&payload[0..null_pos]).to_string();
@@ -175,105 +169,78 @@ pub fn parse_png(bytes: &[u8]) -> Result<PngInfo, MetaForgeError> {
                 if let Some(null_pos) = payload.iter().position(|&b| b == 0) {
                     let key = String::from_utf8_lossy(&payload[0..null_pos]).to_string();
                     let rest = &payload[null_pos + 1..];
-                    if rest.len() >= 2 {
-                        let comp_flag = rest[0];
-                        if comp_flag == 0 {
-                            if let Some(lang_null) = rest[2..].iter().position(|&b| b == 0) {
-                                let after_lang = &rest[2 + lang_null + 1..];
-                                if let Some(trans_null) = after_lang.iter().position(|&b| b == 0) {
-                                    let val_bytes = &after_lang[trans_null + 1..];
-                                    let val = String::from_utf8_lossy(val_bytes).to_string();
-                                    text_metadata.push((key, val));
-                                }
+                    if rest.len() >= 2 && rest[0] == 0 {
+                        if let Some(lang_null) = rest[2..].iter().position(|&b| b == 0) {
+                            let after_lang = &rest[2 + lang_null + 1..];
+                            if let Some(trans_null) = after_lang.iter().position(|&b| b == 0) {
+                                let val = String::from_utf8_lossy(&after_lang[trans_null + 1..]).to_string();
+                                text_metadata.push((key, val));
                             }
                         }
                     }
                 }
             }
-            "pHYs" => {
-                if payload.len() >= 9 {
-                    let ppu_x = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
-                    let ppu_y = u32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]);
-                    let unit_specifier = payload[8];
-                    resolution = Some(PngResolution { ppu_x, ppu_y, unit_specifier });
-                }
+            "pHYs" if payload.len() >= 9 => {
+                resolution = Some(PngResolution {
+                    ppu_x: u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]),
+                    ppu_y: u32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]),
+                    unit_specifier: payload[8],
+                });
             }
-            "sBIT" => {
-                significant_bits = Some(PngSignificantBits { bits: payload.to_vec() });
-            }
+            "sBIT" => significant_bits = Some(PngSignificantBits { bits: payload.to_vec() }),
             "bKGD" => {
-                if payload.len() == 1 {
-                    background_color = Some(PngBackgroundColor {
-                        gray: None,
-                        rgb: None,
-                        palette_index: Some(payload[0]),
-                    });
-                } else if payload.len() == 2 {
-                    let gray = u16::from_be_bytes([payload[0], payload[1]]);
-                    background_color = Some(PngBackgroundColor {
-                        gray: Some(gray),
+                background_color = match payload.len() {
+                    1 => Some(PngBackgroundColor { gray: None, rgb: None, palette_index: Some(payload[0]) }),
+                    2 => Some(PngBackgroundColor {
+                        gray: Some(u16::from_be_bytes([payload[0], payload[1]])),
                         rgb: None,
                         palette_index: None,
-                    });
-                } else if payload.len() == 6 {
-                    let r = u16::from_be_bytes([payload[0], payload[1]]);
-                    let g = u16::from_be_bytes([payload[2], payload[3]]);
-                    let b = u16::from_be_bytes([payload[4], payload[5]]);
-                    background_color = Some(PngBackgroundColor {
+                    }),
+                    6 => Some(PngBackgroundColor {
                         gray: None,
-                        rgb: Some((r, g, b)),
+                        rgb: Some((
+                            u16::from_be_bytes([payload[0], payload[1]]),
+                            u16::from_be_bytes([payload[2], payload[3]]),
+                            u16::from_be_bytes([payload[4], payload[5]]),
+                        )),
                         palette_index: None,
-                    });
-                }
+                    }),
+                    _ => None,
+                };
             }
-            "oFFs" => {
-                if payload.len() >= 9 {
-                    let offset_x = i32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
-                    let offset_y = i32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]);
-                    let unit_specifier = payload[8];
-                    offset = Some(PngOffset { offset_x, offset_y, unit_specifier });
-                }
+            "oFFs" if payload.len() >= 9 => {
+                offset = Some(PngOffset {
+                    offset_x: i32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]),
+                    offset_y: i32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]),
+                    unit_specifier: payload[8],
+                });
             }
-            "sCAL" => {
-                if payload.len() >= 3 {
-                    let unit_specifier = payload[0];
-                    let rest = &payload[1..];
-                    if let Some(idx) = rest.iter().position(|&b| b == 0) {
-                        if let (Ok(x_str), Ok(y_str)) = (
-                            std::str::from_utf8(&rest[..idx]),
-                            std::str::from_utf8(&rest[idx + 1..]),
-                        ) {
-                            scale = Some(PngScale {
-                                unit_specifier,
-                                width_scale: x_str.to_string(),
-                                height_scale: y_str.to_string(),
-                            });
-                        }
+            "sCAL" if payload.len() >= 3 => {
+                let rest = &payload[1..];
+                if let Some(idx) = rest.iter().position(|&b| b == 0) {
+                    if let (Ok(x_str), Ok(y_str)) = (std::str::from_utf8(&rest[..idx]), std::str::from_utf8(&rest[idx + 1..])) {
+                        scale = Some(PngScale {
+                            unit_specifier: payload[0],
+                            width_scale: x_str.to_string(),
+                            height_scale: y_str.to_string(),
+                        });
                     }
                 }
             }
-            "tIME" => {
-                if payload.len() >= 7 {
-                    let year = u16::from_be_bytes([payload[0], payload[1]]);
-                    let month = payload[2];
-                    let day = payload[3];
-                    let hour = payload[4];
-                    let minute = payload[5];
-                    let second = payload[6];
-                    last_modified = Some(format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}", year, month, day, hour, minute, second));
-                }
+            "tIME" if payload.len() >= 7 => {
+                let year = u16::from_be_bytes([payload[0], payload[1]]);
+                last_modified = Some(format!(
+                    "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+                    year, payload[2], payload[3], payload[4], payload[5], payload[6]
+                ));
             }
             "iCCP" => {
                 if let Some(null_pos) = payload.iter().position(|&b| b == 0) {
                     icc_profile_name = Some(String::from_utf8_lossy(&payload[0..null_pos]).to_string());
                 }
             }
-            "eXIf" => {
-                raw_exif_payload = Some(payload.to_vec());
-            }
-            "IEND" => {
-                break;
-            }
+            "eXIf" => raw_exif_payload = Some(payload.to_vec()),
+            "IEND" => break,
             _ => {}
         }
     }
@@ -281,8 +248,7 @@ pub fn parse_png(bytes: &[u8]) -> Result<PngInfo, MetaForgeError> {
     let mut metadata = ExifMetadata::default();
     if let Some(exif_bytes) = raw_exif_payload {
         let mut cursor = Cursor::new(exif_bytes);
-        let exif_reader = kamadak_exif::Reader::new();
-        if let Ok(exif_data) = exif_reader.read_from_container(&mut cursor) {
+        if let Ok(exif_data) = kamadak_exif::Reader::new().read_from_container(&mut cursor) {
             metadata = crate::common::extract_exif_metadata(&exif_data);
         }
     }

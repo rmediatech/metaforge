@@ -14,6 +14,7 @@ pub mod detect;
 pub mod dsp;
 pub mod pipeline;
 pub mod probe;
+pub mod reports;
 pub mod types;
 
 pub use batch::execute_batch_convert;
