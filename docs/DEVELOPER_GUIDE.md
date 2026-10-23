@@ -6,7 +6,7 @@ Welcome to the **MetaForge Developer Guide**. This manual outlines compilation w
 
 ## 🛠️ 1. Compilation & Build Workflows
 
-All builds are managed via the sovereign builder script [`scripts/metaforge-build.sh`](file:///home/emhcet/private/projects/desktop/rust/metaforge/scripts/metaforge-build.sh):
+All builds are managed via the sovereign builder script [`scripts/metaforge-build.sh`](../scripts/metaforge-build.sh):
 
 ```bash
 # 1. Compile native optimized binary (target/release/metaforge):
@@ -25,7 +25,7 @@ The resulting static binary is 100% self-contained and runs on any modern x86_64
 
 ## 🔬 2. Multi-Tier TDD & Adversarial Verification
 
-We enforce a comprehensive multi-tier testing framework across all 7 crates, orchestrated by [`scripts/metaforge-test.sh`](file:///home/emhcet/private/projects/desktop/rust/metaforge/scripts/metaforge-test.sh):
+We enforce a comprehensive multi-tier testing framework across all 7 crates, orchestrated by [`scripts/metaforge-test.sh`](../scripts/metaforge-test.sh):
 
 ```bash
 # Execute complete workspace test matrix across all 7 crates:
@@ -58,7 +58,7 @@ The workspace includes 22 dedicated adversarial self-attack tests asserting immu
 
 ## 🏛️ 3. Architecture & OJP Boundary Inspector
 
-Verify crate boundaries, LOC metrics, and security invariants using [`scripts/metaforge-arch.sh`](file:///home/emhcet/private/projects/desktop/rust/metaforge/scripts/metaforge-arch.sh):
+Verify crate boundaries, LOC metrics, and security invariants using [`scripts/metaforge-arch.sh`](../scripts/metaforge-arch.sh):
 
 ```bash
 # View workspace topology and LOC summary:
