@@ -11,7 +11,7 @@ pub use chi_square::{
 };
 pub use entropy::{calculate_shannon_entropy, is_suspicious_entropy};
 pub use overlay::{detect_overlay, OverlayInfo};
-pub use signatures::{scan_embedded_payloads, EmbeddedPayload};
+pub use signatures::{scan_embedded_payloads, EmbeddedPayload, MAX_PAYLOAD_MATCHES};
 pub use steganalysis::{
     analyze_app_segment, analyze_comment_segment, analyze_jpeg_steganography, analyze_scan_data,
     FindingSeverity, StegFindingType, SteganalysisFinding, SteganalysisReport,

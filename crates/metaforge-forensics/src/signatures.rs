@@ -27,6 +27,12 @@ const PATTERNS: &[SignaturePattern] = &[
     SignaturePattern { magic: &[0x62, 0x61, 0x73, 0x65, 0x36, 0x34, 0x5F, 0x64, 0x65, 0x63, 0x6F, 0x64, 0x65, 0x28], name: "Suspicious Base64 Payload Decoder", category: "Script Injection" }, // "base64_decode("
     SignaturePattern { magic: &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], name: "Embedded PNG Image", category: "Image" },
     SignaturePattern { magic: &[0xFF, 0xD8, 0xFF], name: "Embedded JPEG Image", category: "Image" },
+    SignaturePattern { magic: b"c2pa", name: "C2PA Content Provenance JUMBF Manifest", category: "Provenance" },
+    SignaturePattern { magic: b"jumb", name: "ISO 19566-5 JUMBF Provenance Box", category: "Provenance" },
+    SignaturePattern { magic: b"c2ma", name: "C2PA Claim Manifest Assertion", category: "Provenance" },
+    SignaturePattern { magic: b"prompt", name: "AI Diffusion Generation Prompt Footprint", category: "AI Provenance" },
+    SignaturePattern { magic: b"Negative prompt:", name: "Stable Diffusion Negative Prompt Footprint", category: "AI Provenance" },
+    SignaturePattern { magic: b"ComfyUI", name: "ComfyUI Node Workflow Graph Footprint", category: "AI Provenance" },
 ];
 
 fn is_valid_payload(bytes: &[u8], offset: usize, name: &str) -> bool {
@@ -50,6 +56,9 @@ fn is_valid_payload(bytes: &[u8], offset: usize, name: &str) -> bool {
     }
 }
 
+/// Maximum number of embedded payload matches returned per scan to prevent signature-flood OOM.
+pub const MAX_PAYLOAD_MATCHES: usize = 256;
+
 /// Scans the binary payload of an image for trailing data (overlay) or embedded files with known signatures.
 pub fn scan_embedded_payloads(bytes: &[u8], official_end_offset: usize) -> Vec<EmbeddedPayload> {
     let mut payloads = Vec::new();
@@ -71,7 +80,7 @@ pub fn scan_embedded_payloads(bytes: &[u8], official_end_offset: usize) -> Vec<E
     // 2. Scan for magic signatures starting after offset 12 (to ignore the parent file's own headers)
     if bytes.len() > 12 {
         let scan_limit = bytes.len();
-        for pattern in PATTERNS {
+        'outer: for pattern in PATTERNS {
             let n = pattern.magic.len();
             let mut i = 12;
             while i + n <= scan_limit {
@@ -87,6 +96,9 @@ pub fn scan_embedded_payloads(bytes: &[u8], official_end_offset: usize) -> Vec<E
                         category: pattern.category.to_string(),
                         preview: format_preview(preview_bytes),
                     });
+                    if payloads.len() >= MAX_PAYLOAD_MATCHES {
+                        break 'outer;
+                    }
                 }
                 i += 1;
             }

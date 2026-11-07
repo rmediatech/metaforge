@@ -1,8 +1,11 @@
 # 🖼️ MetaForge
 
+[![CI](https://github.com/rmediatech/metaforge/actions/workflows/ci.yml/badge.svg)](https://github.com/rmediatech/metaforge/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-v0.3.0-brightgreen.svg)](CHANGELOG.md)
+[![Release](https://img.shields.io/badge/Release-v0.3.0-green.svg)](https://rmediatech.com/downloads)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Architecture: 7-Crate OJP](https://img.shields.io/badge/Architecture-7--Crate%20OJP-brightgreen.svg)](docs/ARCHITECTURE.md)
-[![Verification: 51/51 Green](https://img.shields.io/badge/TDD%2B%2B%2B%2B%2B-51%2F51%20Passing-success.svg)](docs/DEVELOPER_GUIDE.md)
+[![Verification: 100% Green](https://img.shields.io/badge/TDD%2B%2B%2B%2B%2B-100%25%20Passing-success.svg)](docs/DEVELOPER_GUIDE.md)
 [![Target: Static Musl PIE](https://img.shields.io/badge/Target-x86__64--musl%20PIE-blueviolet.svg)](docs/ARCHITECTURE.md)
 
 An enterprise-grade, zero-dependency sovereign media engine for digital image and audio containers. **MetaForge** audits container structure, extracts deep EXIF/GPS/TIFF metadata, performs statistical steganalysis, scrubs sensitive tracking footprints, extracts linear audio from video, and transcodes media across standard formats—statically compiled with **zero dynamic C/FFI dependencies**.
