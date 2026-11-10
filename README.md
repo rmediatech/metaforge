@@ -2,7 +2,8 @@
 
 [![CI](https://github.com/rmediatech/metaforge/actions/workflows/ci.yml/badge.svg)](https://github.com/rmediatech/metaforge/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-v0.3.0-brightgreen.svg)](CHANGELOG.md)
-[![Release](https://img.shields.io/badge/Release-v0.3.0-green.svg)](https://rmediatech.com/downloads)
+[![Release](https://img.shields.io/badge/Release-v0.3.0-green.svg)](https://github.com/rmediatech/metaforge/releases/tag/v0.3.0)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-blue.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Architecture: 7-Crate OJP](https://img.shields.io/badge/Architecture-7--Crate%20OJP-brightgreen.svg)](docs/ARCHITECTURE.md)
 [![Verification: 100% Green](https://img.shields.io/badge/TDD%2B%2B%2B%2B%2B-100%25%20Passing-success.svg)](docs/DEVELOPER_GUIDE.md)
